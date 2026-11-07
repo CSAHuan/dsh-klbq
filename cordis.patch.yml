@@ -1,0 +1,9 @@
+# 把 dsh-klbq 挂进 DSH 的插件链。
+#
+# entry 的 `id` 与 `name` 都写成 dsh-klbq：id 用于 loader 内定位，
+# name 是包名（node_modules 里解析到的就是它）。
+# 这个插件只注册工具，不注入 UI，所以不需要 Config 之外的额外接线。
+- insert:
+    - id: dsh-klbq
+      name: dsh-klbq
+      config: {}
