@@ -26,7 +26,14 @@ jobs:
         run: |
           // 用假 ctx 验证插件能导出 name/inject/apply，且工具定义形状正确。
           // 不触网、不渲染，纯静态契约检查，所以可以在 CI 里稳定跑。
-          const mod = await import('./lib/index.js');
+          //
+          // 注意：shell: node {0} 会把这段脚本落到临时目录再执行，
+          // 所以 `import('./lib/index.js')` 会相对临时目录解析而报 MODULE_NOT_FOUND，
+          // 必须用 process.cwd()（= 工作区根）拼绝对路径再转成 file URL。
+          const path = await import('node:path');
+          const { pathToFileURL } = await import('node:url');
+          const entry = pathToFileURL(path.resolve(process.cwd(), 'lib/index.js')).href;
+          const mod = await import(entry);
           const assert = (cond, msg) => { if (!cond) { console.error('FAIL: ' + msg); process.exit(1); } };
           assert(typeof mod.name === 'string' && mod.name.length > 0, 'name 缺失');
           assert(Array.isArray(mod.inject) && mod.inject.includes('tools'), 'inject 应包含 tools');
