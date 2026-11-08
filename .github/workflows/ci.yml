@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 语法检查
+        run: |
+          node --check lib/index.js
+          node --check lib/dakanu.js
+          node --check lib/render.js
+
+      - name: 插件契约冒烟测试（不联网）
+        shell: node {0}
+        run: |
+          // 用假 ctx 验证插件能导出 name/inject/apply，且工具定义形状正确。
+          // 不触网、不渲染，纯静态契约检查，所以可以在 CI 里稳定跑。
+          const mod = await import('./lib/index.js');
+          const assert = (cond, msg) => { if (!cond) { console.error('FAIL: ' + msg); process.exit(1); } };
+          assert(typeof mod.name === 'string' && mod.name.length > 0, 'name 缺失');
+          assert(Array.isArray(mod.inject) && mod.inject.includes('tools'), 'inject 应包含 tools');
+          assert(typeof mod.apply === 'function', 'apply 不是函数');
+          assert(typeof mod.queryPlayer === 'function', 'queryPlayer 未导出');
+
+          const registered = [];
+          mod.apply({
+            tools: { register(def) { registered.push(def); return () => {}; } },
+            effect(fn) { fn(); },
+            logger: { warn() {} },
+          });
+          const def = registered[0];
+          assert(def && def.name === 'klbq_query', '未注册 klbq_query');
+          assert(def.parameters.required.includes('nickname'), 'nickname 应为必填');
+          assert(def.parameters.additionalProperties === false, '应禁止额外参数');
+          assert(typeof def.resolve === 'function', 'resolve 不是函数');
+          console.log('OK');
