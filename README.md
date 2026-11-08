@@ -33,7 +33,23 @@
 
 ## 安装
 
-插件以本地 link 方式挂在 DSH profile 上：
+本插件有**两条发行通道**，按你用的 QQ 接法选一条：
+
+| 通道 | 安装 | 版本线 | 行为 |
+|---|---|---|---|
+| **QQ 官方机器人**（`@tencent-connect/dsh-qqbot`） | `npm i dsh-klbq` | 0.2.x | 工具 + 往 system prompt 注入 `/klbq` 用法，QQ 里发指令可直接出图 |
+| **自建 OneBot 桥接**（SnowLuma / OneBot v11） | `npm i dsh-klbq@sl` | 0.1.x | 纯工具，不碰 system prompt，零额外 token |
+
+```bash
+npm i dsh-klbq@latest   # 官方机器人
+npm i dsh-klbq@sl       # 自建桥接 / SnowLuma
+```
+
+两条线只差一处：0.2.x 多了 QQ 官方机器人适配层（`lib/qqbot.js`）。
+自建桥接自己就实现了 `/klbq` 指令和发图（见 qq-bridge 的 `src/klbq.js`），
+插件在那边只需要提供工具，不需要注入任何提示词——所以 `sl` 通道停在 0.1.x。
+
+也可以本地 link 安装（开发用）：
 
 ```json
 // ~/.dsh/profiles/<profile>/package.json
