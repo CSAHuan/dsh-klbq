@@ -1,6 +1,6 @@
 {
   "name": "dsh-klbq",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "卡拉彼丘（Strinova）战绩查询：按昵称从 dakanu.com 取数并渲染长图（排位段位/总览/模式/角色/最近对局），作为 DSH 工具 klbq_query 暴露给 agent",
   "type": "module",
   "main": "./lib/index.js",
