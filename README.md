@@ -60,7 +60,53 @@
 用系统自带的 Edge / Chrome 无头截图（两趟：先 `--dump-dom` 量内容高度，再按高度截图），
 不引入 canvas / puppeteer 之类的重依赖。找不到浏览器时可用环境变量 `KLBQ_BROWSER` 指定路径。
 
+## 与 QQ 官方机器人（`@tencent-connect/dsh-qqbot`）配合使用
+
+装了这个通道之后，在 QQ 私聊或群里直接发：
+
+```
+/klbq 才知道左键能开枪
+```
+
+图片会作为本轮交付物自动发回聊天。
+
+**实现方式**（不是注册斜杠命令）：
+
+`dsh-qqbot` 的命令表是硬编码的（`dist/commands/index.js` 的 `buildCommandList`），
+没有对外扩展点，第三方插件加不进 `/klbq`。但它用的 `slashCommand` 中间件对
+**未注册**的命令是 `await next()` 放行的（`qqbot-nodejs/dist/middleware/slash-command.js`），
+所以 `/klbq xxx` 不会被吞掉，会当作普通消息进入 agent 回合。
+
+于是本插件挂到 `system-prompt/assemble` 瀑布流上，注入一小段说明，告诉 agent：
+收到 `/klbq` 就调用 `klbq_query`，拿到 `imagePath` 后再用 `present` 声明为交付物
+（`dsh-qqbot` 的 `DeliverablesDeliverer` 会在轮末把文件发出去）。
+
+**配置**
+
+```jsonc
+// cordis 配置片段
+{
+  "integrations": {
+    "qqbot": {
+      "promptInjection": true,   // 默认 true；关掉就不再注入说明
+      "prompt": "……"             // 可选，完全替换默认那段说明
+    }
+  }
+}
+```
+
+> 注入的说明每轮都在 system prompt 里（约 150 token）。没装 `dsh-qqbot` 时
+> 插件会自动跳过，不产生任何开销。
+
 ## 更新日志
+
+### 0.2.0 — 适配 QQ 官方机器人
+
+- 新增 `lib/qqbot.js`：检测 `@tencent-connect/dsh-qqbot` 是否存在，存在则向
+  `system-prompt/assemble` 注入 `/klbq` 用法，让 QQ 里发指令可直接出图
+- 检测兼容 `link:` 安装（插件在 `~/.dsh/plugins`，依赖在 `~/.dsh/profiles/*/node_modules`，
+  不是祖先目录，`require.resolve` 会漏判，所以同时扫 profile 目录）
+- 工具描述补充「IM 通道拿到 imagePath 后应调用 present 交付」
 
 ### 0.1.1 — 取数提速
 

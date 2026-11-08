@@ -41,14 +41,46 @@ jobs:
           assert(typeof mod.queryPlayer === 'function', 'queryPlayer 未导出');
 
           const registered = [];
-          mod.apply({
+          const ctx = {
             tools: { register(def) { registered.push(def); return () => {}; } },
             effect(fn) { fn(); },
-            logger: { warn() {} },
-          });
+            on() { return () => {}; },
+            logger: { info() {}, warn() {} },
+          };
+          mod.apply(ctx);
           const def = registered[0];
           assert(def && def.name === 'klbq_query', '未注册 klbq_query');
           assert(def.parameters.required.includes('nickname'), 'nickname 应为必填');
           assert(def.parameters.additionalProperties === false, '应禁止额外参数');
           assert(typeof def.resolve === 'function', 'resolve 不是函数');
+
+          // ── QQ 机器人适配层（CI 没装 dsh-qqbot，直接测桥本身） ──
+          const qqEntry = pathToFileURL(path.resolve(process.cwd(), 'lib/qqbot.js')).href;
+          const qq = await import(qqEntry);
+          assert(typeof qq.detectQQBot === 'function', 'detectQQBot 未导出');
+          assert(typeof qq.installQQBotBridge === 'function', 'installQQBotBridge 未导出');
+          assert(typeof qq.QQBOT_PROMPT === 'string' && qq.QQBOT_PROMPT.includes('/klbq'), '注入文案应说明 /klbq');
+          assert(typeof qq.SECTION_NAME === 'string' && qq.SECTION_NAME.length > 0, 'SECTION_NAME 未导出');
+
+          const handlers = new Map();
+          const fakeCtx = {
+            on(evt, fn) { handlers.set(evt, fn); return () => handlers.delete(evt); },
+            effect() {},
+            logger: { info() {}, warn() {} },
+          };
+          assert(qq.installQQBotBridge(fakeCtx, {}) === true, '桥挂载应返回 true');
+          const h = handlers.get('system-prompt/assemble');
+          assert(typeof h === 'function', '应监听 system-prompt/assemble');
+
+          const next = async () => ({ sections: [{ name: 'base', order: 1, text: 'x' }] });
+          let r = await h({}, {}, next);
+          assert(r.sections.length === 1, '没有 agent 的回合不应注入');
+          r = await h({}, { agent: { id: 'a' } }, next);
+          assert(r.sections.length === 2, '有 agent 的回合应注入一段');
+          assert(r.sections[1].name === qq.SECTION_NAME, '注入段落名不对');
+          const again = await h({}, { agent: { id: 'a' } }, async () => r);
+          assert(again.sections.length === 2, '同名段落不应重复叠加');
+          const empty = await h({}, { agent: { id: 'a' } }, async () => ({}));
+          assert(Array.isArray(empty.sections) && empty.sections.length === 1, '空组装应新建 sections');
+
           console.log('OK');
