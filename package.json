@@ -1,6 +1,6 @@
 {
     "name":  "dsh-klbq",
-    "version":  "0.2.0",
+    "version": "0.2.1",
     "description":  "閸椻剝濯鸿ぐ闂寸瑴閿涘湯trinova閿涘鍨紒鈺傜叀鐠囶澁绱伴幐澶嬫█缁夐绮?dakanu.com 閸欐牗鏆熼獮鑸佃閺屾捇鏆遍崶鎾呯礄閹烘帊缍呭▓鍏哥秴/閹槒顫?濡€崇础/鐟欐帟澹?閺堚偓鏉╂垵顕仦鈧敍澶涚礉娴ｆ粈璐?DSH 瀹搞儱鍙?klbq_query 閺嗘挳婀剁紒?agent",
     "type":  "module",
     "main":  "./lib/index.js",
